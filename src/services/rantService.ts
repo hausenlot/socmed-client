@@ -46,22 +46,18 @@ export interface ReplyDto {
   likeCount: number;
   replyCount: number;
   isLikedByMe: boolean;
+  mediaUrl?: string;
+  mediaType?: 'image' | 'video';
 }
 
-interface PaginatedResponse<T> {
-  items: T[];
-  totalCount: number;
-  page: number;
-  pageSize: number;
-}
 
 // --- Feed / Timeline ---
-export function getHomeFeed(page = 1, pageSize = 20) {
-  return get<PaginatedResponse<RantDto>>(`/timelines/home?page=${page}&pageSize=${pageSize}`);
+export function getHomeFeed(page = 1, pageSize = 10) {
+  return get<RantDto[]>(`/timelines/home?page=${page}&pageSize=${pageSize}`);
 }
 
-export function getExploreFeed() {
-  return get<RantDto[]>('/rants/explore');
+export function getExploreFeed(page = 1, pageSize = 10) {
+  return get<RantDto[]>(`/rants/explore?page=${page}&pageSize=${pageSize}`);
 }
 
 export function getRantById(id: number) {
@@ -96,10 +92,19 @@ export function toggleBookmark(id: number) {
 }
 
 // --- Replies ---
-export function getReplies(rantId: number, page = 1, pageSize = 20) {
-  return get<PaginatedResponse<ReplyDto>>(`/rants/${rantId}/replies?page=${page}&pageSize=${pageSize}`);
+export function getReplies(rantId: number, page = 1, pageSize = 10) {
+  return get<ReplyDto[]>(`/rants/${rantId}/replies?page=${page}&pageSize=${pageSize}`);
 }
 
-export function createReply(rantId: number, content: string, parentReplyId?: number) {
-  return post<ReplyDto>(`/rants/${rantId}/replies`, { content, parentReplyId });
+export function createReply(rantId: number, content: string, parentReplyId?: number, mediaFile?: File) {
+  const formData = new FormData();
+  formData.append('content', content);
+  if (parentReplyId) formData.append('parentReplyId', parentReplyId.toString());
+  if (mediaFile) formData.append('mediaFile', mediaFile);
+  
+  return post<ReplyDto>(`/rants/${rantId}/replies`, formData);
+}
+
+export function toggleReplyLike(replyId: number) {
+  return post<void>(`/replies/${replyId}/like`);
 }

@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import RantItem from '../components/RantItem';
 import { getExploreFeed, type RantDto } from '../services/rantService';
 import { searchUsers, type UserProfileDto } from '../services/userService';
+import Icons from '../components/Icons';
 
 export default function ExplorePage() {
   const navigate = useNavigate();
@@ -12,15 +13,65 @@ export default function ExplorePage() {
   const [searchResults, setSearchResults] = useState<UserProfileDto[]>([]);
   const [searching, setSearching] = useState(false);
 
-  const fetchExplore = async () => {
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const isFetchingRef = useRef(false);
+
+  const fetchExplore = async (pageNum = 1, append = false) => {
+    if (isFetchingRef.current) return;
+    isFetchingRef.current = true;
+
+    if (!append) setLoading(true);
+    else setLoadingMore(true);
+
     try {
-      const res = await getExploreFeed();
-      setRants(Array.isArray(res) ? res : []);
+      const res = await getExploreFeed(pageNum);
+      const items = Array.isArray(res) ? res : [];
+      
+      if (items.length < 10) setHasMore(false);
+      else setHasMore(true);
+
+      if (append) {
+        setRants(prev => {
+          const existingIds = new Set(prev.map(r => r.id));
+          const uniqueItems = items.filter(r => !existingIds.has(r.id));
+          return [...prev, ...uniqueItems];
+        });
+      } else {
+        setRants(items);
+      }
     } catch { /* ignore */ }
-    finally { setLoading(false); }
+    finally { 
+      setLoading(false); 
+      setLoadingMore(false);
+      isFetchingRef.current = false;
+    }
   };
 
-  useEffect(() => { fetchExplore(); }, []);
+  useEffect(() => { 
+    setPage(1);
+    fetchExplore(1, false); 
+  }, []);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (loading || loadingMore || !hasMore || searchQuery.trim()) return;
+      
+      const scrollHeight = document.documentElement.scrollHeight;
+      const scrollTop = document.documentElement.scrollTop;
+      const clientHeight = document.documentElement.clientHeight;
+
+      if (scrollHeight - scrollTop - clientHeight < 300) {
+        const nextPage = page + 1;
+        setPage(nextPage);
+        fetchExplore(nextPage, true);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [loading, loadingMore, hasMore, page, searchQuery]);
 
   // Debounced search
   useEffect(() => {
@@ -44,7 +95,7 @@ export default function ExplorePage() {
     <>
       <div className="explore-search">
         <div className="explore-search-bar">
-          <span style={{ color: 'var(--text3)', fontSize: '16px' }}>🔍</span>
+          <Icons.Search />
           <input
             placeholder="Search users"
             value={searchQuery}
@@ -87,7 +138,14 @@ export default function ExplorePage() {
       {!loading && rants.length === 0 && (
         <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text3)' }}>No rants to explore yet.</div>
       )}
-      {rants.map(rant => <RantItem key={rant.id} rant={rant} onUpdate={fetchExplore} />)}
+      {rants.map(rant => <RantItem key={rant.id} rant={rant} onUpdate={() => fetchExplore(1, false)} />)}
+
+      {loadingMore && <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--text3)' }}>Loading more...</div>}
+      {!hasMore && rants.length > 0 && (
+        <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text3)', fontSize: '14px' }}>
+          You've explored everything! ✨
+        </div>
+      )}
     </>
   );
 }

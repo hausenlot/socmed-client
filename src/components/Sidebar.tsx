@@ -1,38 +1,24 @@
-import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { getUnreadCount } from '../services/notificationService';
+import { useNotifications } from '../context/NotificationContext';
+import Icons from './Icons';
 
 export default function Sidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout, isLoggedIn } = useAuth();
-  const [unreadCount, setUnreadCount] = useState(0);
+  const { unreadCount } = useNotifications();
 
   const initials = user
     ? user.displayName.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
     : '??';
 
-  // Poll for unread notifications
-  useEffect(() => {
-    if (!isLoggedIn) return;
-    const fetchCount = async () => {
-      try {
-        const res = await getUnreadCount();
-        setUnreadCount(res.count ?? 0);
-      } catch { /* ignore */ }
-    };
-    fetchCount();
-    const interval = setInterval(fetchCount, 30000);
-    return () => clearInterval(interval);
-  }, [isLoggedIn]);
-
   const navItems = [
-    { name: 'Home', path: '/', icon: '⌂' },
-    { name: 'Explore', path: '/explore', icon: '☰' },
-    { name: 'Notifications', path: '/notifications', icon: '🔔', badge: unreadCount },
-    ...(isLoggedIn ? [{ name: 'Bookmarks', path: '/bookmarks', icon: '🔖' }] : []),
-    ...(isLoggedIn && user ? [{ name: 'Profile', path: `/profile/${user.username}`, icon: '☺' }] : []),
+    { name: 'Home', path: '/', icon: <Icons.Home /> },
+    { name: 'Explore', path: '/explore', icon: <Icons.Explore /> },
+    { name: 'Notifications', path: '/notifications', icon: <Icons.Notifications />, badge: unreadCount },
+    ...(isLoggedIn ? [{ name: 'Bookmarks', path: '/bookmarks', icon: <Icons.Bookmarks /> }] : []),
+    ...(isLoggedIn && user ? [{ name: 'Profile', path: `/profile/${user.username}`, icon: <Icons.Profile /> }] : []),
   ];
 
   const handleNewRant = () => {
@@ -80,11 +66,7 @@ export default function Sidebar() {
               onMouseEnter={e => { e.currentTarget.style.color = 'var(--red)'; e.currentTarget.style.background = 'var(--bg3)' }}
               onMouseLeave={e => { e.currentTarget.style.color = 'var(--text3)'; e.currentTarget.style.background = 'transparent' }}
             >
-              <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                <polyline points="16 17 21 12 16 7"></polyline>
-                <line x1="21" y1="12" x2="9" y2="12"></line>
-              </svg>
+              <Icons.Logout />
             </button>
           </div>
         </>

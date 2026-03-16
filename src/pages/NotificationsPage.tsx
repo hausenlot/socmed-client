@@ -1,21 +1,25 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { getNotifications, markAllRead, type NotificationDto } from '../services/notificationService';
+import { useNotifications } from '../context/NotificationContext';
+import { getNotifications, markAllRead, markAsRead, type NotificationDto } from '../services/notificationService';
+import Icons from '../components/Icons';
 
-function notificationIcon(type: string): string {
-  switch (type.toLowerCase()) {
-    case 'like': return '❤️';
-    case 'rerant': return '🔁';
-    case 'reply': return '💬';
-    case 'follow': return '👤';
-    case 'mention': return '📢';
-    default: return '🔔';
+function notificationIcon(type: string) {
+  const t = type.toLowerCase();
+  switch (t) {
+    case 'like': return <Icons.Interaction.Like />;
+    case 'rerant': return <Icons.Interaction.Rerant />;
+    case 'reply': return <Icons.Interaction.Reply />;
+    case 'follow': return <Icons.Interaction.Follow />;
+    case 'mention': return <Icons.Interaction.Mention />;
+    default: return <Icons.Notifications />;
   }
 }
 
 export default function NotificationsPage() {
   const { isLoggedIn } = useAuth();
+  const { setUnreadCount } = useNotifications();
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState<NotificationDto[]>([]);
   const [loading, setLoading] = useState(true);
@@ -37,10 +41,19 @@ export default function NotificationsPage() {
     try {
       await markAllRead();
       setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+      setUnreadCount(0);
     } catch { /* ignore */ }
   };
 
-  const handleClick = (n: NotificationDto) => {
+  const handleClick = async (n: NotificationDto) => {
+    if (!n.isRead) {
+      try {
+        await markAsRead(n.id);
+        setNotifications(prev => prev.map(m => m.id === n.id ? { ...m, isRead: true } : m));
+        setUnreadCount(prev => Math.max(0, prev - 1));
+      } catch { /* ignore */ }
+    }
+
     if (n.rantId) {
       navigate(`/rant/${n.rantId}`);
     } else if (n.sourceUsername) {
@@ -89,7 +102,7 @@ export default function NotificationsPage() {
           onMouseEnter={e => (e.currentTarget.style.background = 'var(--hover)')}
           onMouseLeave={e => (e.currentTarget.style.background = n.isRead ? 'transparent' : 'rgba(var(--accent-rgb, 124, 58, 237), 0.05)')}
         >
-          <span style={{ fontSize: '20px', flexShrink: 0 }}>{notificationIcon(n.type)}</span>
+          <span className="notification-icon" style={{ flexShrink: 0, color: 'var(--accent)' }}>{notificationIcon(n.type)}</span>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: '14px', color: 'var(--text)', lineHeight: 1.4 }}>
               {n.message}

@@ -4,6 +4,7 @@ import type { RantDto } from '../services/rantService';
 import { toggleLike, toggleRerant, createRant, toggleBookmark } from '../services/rantService';
 import { useAuth } from '../context/AuthContext';
 import { isLoggedIn } from '../services/authService';
+import { parseContent } from '../utils/contentParser';
 
 function getInitials(name: string | undefined): string {
   if (!name) return '??';
@@ -32,26 +33,6 @@ function formatCount(n: number): string {
   return String(n);
 }
 
-function parseMentions(text: string, navigate: (path: string) => void): React.ReactNode[] {
-  const parts = text.split(/(@\w+)/g);
-  return parts.map((part, i) => {
-    if (part.startsWith('@')) {
-      const username = part.substring(1);
-      return (
-        <span 
-          key={i} 
-          style={{ color: 'var(--accent)', fontWeight: 500, cursor: 'pointer' }}
-          onClick={(e) => { e.stopPropagation(); navigate(`/profile/${username}`); }}
-          onMouseEnter={e => e.currentTarget.style.textDecoration = 'underline'}
-          onMouseLeave={e => e.currentTarget.style.textDecoration = 'none'}
-        >
-          {part}
-        </span>
-      );
-    }
-    return part;
-  });
-}
 
 // Deterministic color from username
 function avatarGradient(username: string | undefined): string {
@@ -177,10 +158,28 @@ export default function RantItem({ rant, onUpdate }: { rant: RantDto; onUpdate?:
           <span className="rant-time">{rant.createdAt ? timeAgo(rant.createdAt) : ''}</span>
         </div>
 
-        <div className="rant-text">{parseMentions(rant.content, navigate)}</div>
+        <div className="rant-text">
+          {(() => {
+            const { elements, mediaLinks } = parseContent(rant.content, navigate);
+            return (
+              <>
+                <div>{elements}</div>
+                {mediaLinks.map((link, idx) => (
+                  <div key={idx} className="rant-media embed" style={{ marginTop: '8px', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border2)', maxHeight: '300px' }}>
+                    {link.type === 'video' ? (
+                      <video src={link.url} controls style={{ maxWidth: '100%', maxHeight: '300px' }} onClick={e => e.stopPropagation()} />
+                    ) : (
+                      <img src={link.url} alt="Embedded" style={{ width: '100%', maxHeight: '300px', display: 'block' }} onClick={e => { e.stopPropagation(); window.open(link.url, '_blank'); }} />
+                    )}
+                  </div>
+                ))}
+              </>
+            );
+          })()}
+        </div>
 
         {rant.mediaUrl && (
-          <div className="rant-media" style={{ marginTop: '12px', borderRadius: '16px', overflow: 'hidden', border: '1px solid var(--border2)', maxHeight: '500px', background: '#000', display: 'flex', justifyContent: 'center' }}>
+          <div className="rant-media" style={{ marginTop: '12px', borderRadius: '16px', overflow: 'hidden', border: '1px solid var(--border2)', maxHeight: '500px' }}>
             {rant.mediaType === 'video' ? (
               <video 
                 src={rant.mediaUrl} 
@@ -189,10 +188,10 @@ export default function RantItem({ rant, onUpdate }: { rant: RantDto; onUpdate?:
                 onClick={e => e.stopPropagation()}
               />
             ) : (
-              <img 
-                src={rant.mediaUrl} 
-                alt="Media" 
-                style={{ maxWidth: '100%', height: 'auto', maxHeight: '500px', objectFit: 'contain' }} 
+                  <img 
+                    src={rant.mediaUrl} 
+                    alt="Media" 
+                    style={{ width: '100%', height: 'auto', maxHeight: '500px', display: 'block' }} 
                 onClick={e => { e.stopPropagation(); window.open(rant.mediaUrl, '_blank'); }}
               />
             )}
@@ -226,9 +225,27 @@ export default function RantItem({ rant, onUpdate }: { rant: RantDto; onUpdate?:
               <span className="rant-dot">·</span>
               <span className="rant-time" style={{ fontSize: '14px' }}>{timeAgo(rant.quoteRant.createdAt)}</span>
             </div>
-            <div className="rant-text" style={{ fontSize: '14px', marginBottom: 0 }}>{parseMentions(rant.quoteRant.content, navigate)}</div>
+            <div className="rant-text" style={{ fontSize: '14px', marginBottom: 0 }}>
+              {(() => {
+                const { elements, mediaLinks } = parseContent(rant.quoteRant.content, navigate);
+                return (
+                  <>
+                    <div>{elements}</div>
+                    {mediaLinks.map((link, idx) => (
+                      <div key={idx} className="rant-media embed sm" style={{ marginTop: '6px', borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--border2)', maxHeight: '200px' }}>
+                        {link.type === 'video' ? (
+                          <video src={link.url} controls style={{ maxWidth: '100%', maxHeight: '200px' }} onClick={e => e.stopPropagation()} />
+                        ) : (
+                          <img src={link.url} alt="Embedded" style={{ width: '100%', maxHeight: '200px', display: 'block' }} onClick={e => { e.stopPropagation(); window.open(link.url, '_blank'); }} />
+                        )}
+                      </div>
+                    ))}
+                  </>
+                );
+              })()}
+            </div>
             {rant.quoteRant.mediaUrl && (
-              <div className="rant-media" style={{ marginTop: '8px', borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--border2)', maxHeight: '300px', background: '#000', display: 'flex', justifyContent: 'center' }}>
+              <div className="rant-media" style={{ marginTop: '8px', borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--border2)', maxHeight: '300px' }}>
                 {rant.quoteRant.mediaType === 'video' ? (
                   <video 
                     src={rant.quoteRant.mediaUrl} 
@@ -239,7 +256,7 @@ export default function RantItem({ rant, onUpdate }: { rant: RantDto; onUpdate?:
                   <img 
                     src={rant.quoteRant.mediaUrl} 
                     alt="Media" 
-                    style={{ maxWidth: '100%', height: 'auto', maxHeight: '300px', objectFit: 'contain' }} 
+                    style={{ width: '100%', height: 'auto', maxHeight: '300px', display: 'block' }} 
                   />
                 )}
               </div>

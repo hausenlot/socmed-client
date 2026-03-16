@@ -21,3 +21,7 @@ export function getUnreadCount() {
 export function markAllRead() {
   return put<void>('/notifications/read-all');
 }
+
+export function markAsRead(id: number) {
+  return put<void>(`/notifications/read/${id}`);
+}

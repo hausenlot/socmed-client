@@ -1,9 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   getRantById, getReplies, toggleLike, toggleRerant,
-  createReply, type RantDto, type ReplyDto
+  createReply, toggleReplyLike, type RantDto, type ReplyDto
 } from '../services/rantService';
+import MentionSuggestions from '../components/MentionSuggestions';
+import { useMentions } from '../hooks/useMentions';
+import { parseContent } from '../utils/contentParser';
+import Icons from '../components/Icons';
 
 function getInitials(name: string | undefined): string {
   if (!name) return '??';
@@ -31,26 +35,6 @@ function formatCount(n: number): string {
   return String(n);
 }
 
-function parseMentions(text: string, navigate: (path: string) => void): React.ReactNode[] {
-  const parts = text.split(/(@\w+)/g);
-  return parts.map((part, i) => {
-    if (part.startsWith('@')) {
-      const username = part.substring(1);
-      return (
-        <span 
-          key={i} 
-          style={{ color: 'var(--accent)', fontWeight: 500, cursor: 'pointer' }}
-          onClick={(e) => { e.stopPropagation(); navigate(`/profile/${username}`); }}
-          onMouseEnter={e => e.currentTarget.style.textDecoration = 'underline'}
-          onMouseLeave={e => e.currentTarget.style.textDecoration = 'none'}
-        >
-          {part}
-        </span>
-      );
-    }
-    return part;
-  });
-}
 
 export default function RantDetailPage() {
   const navigate = useNavigate();
@@ -67,6 +51,35 @@ export default function RantDetailPage() {
   const [replyContent, setReplyContent] = useState('');
   const [submittingReply, setSubmittingReply] = useState(false);
   const [replyingTo, setReplyingTo] = useState<{ replyId: number; username: string } | null>(null);
+  const [mediaFile, setMediaFile] = useState<File | null>(null);
+  const [mediaPreview, setMediaPreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setMediaFile(file);
+      setMediaPreview(URL.createObjectURL(file));
+    }
+  };
+
+  const removeFile = () => {
+    setMediaFile(null);
+    if (mediaPreview) URL.revokeObjectURL(mediaPreview);
+    setMediaPreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const {
+    suggestions,
+    activeIndex,
+    selectUser,
+    handleKeyDown,
+    onTextareaChange,
+    onTextareaClick,
+    textareaRef,
+    showSuggestions
+  } = useMentions(replyContent, setReplyContent);
 
   const fetchData = async () => {
     try {
@@ -79,7 +92,7 @@ export default function RantDetailPage() {
       setLikeCount(rantData.likeCount);
       setReranted(rantData.isRerantedByMe);
       setRerantCount(rantData.reRantCount);
-      setReplies(repliesData.items ?? (repliesData as unknown as ReplyDto[]));
+      setReplies(repliesData);
     } catch { /* ignore */ }
     finally { setLoading(false); }
   };
@@ -102,13 +115,30 @@ export default function RantDetailPage() {
     } catch { /* ignore */ }
   };
 
+  const handleLikeReply = async (replyId: number) => {
+    try {
+      await toggleReplyLike(replyId);
+      setReplies(prev => prev.map(r => {
+        if (r.id === replyId) {
+          return {
+            ...r,
+            isLikedByMe: !r.isLikedByMe,
+            likeCount: r.isLikedByMe ? r.likeCount - 1 : r.likeCount + 1
+          };
+        }
+        return r;
+      }));
+    } catch { /* ignore */ }
+  };
+
   const handleSubmitReply = async () => {
-    if (!replyContent.trim()) return;
+    if (!replyContent.trim() && !mediaFile) return;
     setSubmittingReply(true);
     try {
-      await createReply(rantId, replyContent.trim(), replyingTo?.replyId);
+      await createReply(rantId, replyContent.trim(), replyingTo?.replyId, mediaFile || undefined);
       setReplyContent('');
       setReplyingTo(null);
+      removeFile();
       fetchData();
     } catch { /* ignore */ }
     finally { setSubmittingReply(false); }
@@ -164,10 +194,28 @@ export default function RantDetailPage() {
           </div>
         </div>
 
-        <div className="rant-text">{parseMentions(rant.content, navigate)}</div>
+        <div className="rant-text" style={{ marginBottom: '16px' }}>
+          {(() => {
+            const { elements, mediaLinks } = parseContent(rant.content, navigate);
+            return (
+              <>
+                <div style={{ fontSize: '19px', lineHeight: '1.4' }}>{elements}</div>
+                {mediaLinks.map((link, idx) => (
+                  <div key={idx} className="rant-media embed" style={{ marginTop: '12px', borderRadius: '16px', overflow: 'hidden', border: '1px solid var(--border2)', maxHeight: '500px', background: '#000', display: 'flex', justifyContent: 'center' }}>
+                    {link.type === 'video' ? (
+                      <video src={link.url} controls style={{ maxWidth: '100%', maxHeight: '500px' }} />
+                    ) : (
+                      <img src={link.url} alt="Embedded" style={{ maxWidth: '100%', maxHeight: '500px', objectFit: 'contain', cursor: 'pointer' }} onClick={() => window.open(link.url, '_blank')} />
+                    )}
+                  </div>
+                ))}
+              </>
+            );
+          })()}
+        </div>
         
         {rant.mediaUrl && (
-          <div className="rant-media" style={{ marginTop: '16px', borderRadius: '16px', overflow: 'hidden', border: '1px solid var(--border2)', maxHeight: '600px', background: '#000', display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+          <div className="rant-media" style={{ marginTop: '16px', borderRadius: '16px', overflow: 'hidden', border: '1px solid var(--border2)', maxHeight: '600px', marginBottom: '16px' }}>
             {rant.mediaType === 'video' ? (
               <video 
                 src={rant.mediaUrl} 
@@ -175,12 +223,12 @@ export default function RantDetailPage() {
                 style={{ maxWidth: '100%', height: 'auto', maxHeight: '600px' }} 
               />
             ) : (
-              <img 
-                src={rant.mediaUrl} 
-                alt="Media" 
-                style={{ maxWidth: '100%', height: 'auto', maxHeight: '600px', objectFit: 'contain', cursor: 'pointer' }} 
-                onClick={() => window.open(rant.mediaUrl, '_blank')}
-              />
+                  <img 
+                    src={rant.mediaUrl} 
+                    alt="Media" 
+                    style={{ width: '100%', height: 'auto', maxHeight: '600px', display: 'block', cursor: 'pointer' }} 
+                    onClick={() => window.open(rant.mediaUrl, '_blank')}
+                  />
             )}
           </div>
         )}
@@ -190,10 +238,28 @@ export default function RantDetailPage() {
               <span className="rant-author" style={{ fontSize: '14px' }}>{rant.quoteRant.displayName || rant.quoteRant.username}</span>
               <span className="rant-handle" style={{ fontSize: '14px' }}>@{rant.quoteRant.username}</span>
             </div>
-            <div className="rant-text" style={{ fontSize: '14px', marginBottom: 0 }}>{parseMentions(rant.quoteRant.content, navigate)}</div>
+            <div className="rant-text" style={{ fontSize: '14px', marginBottom: 0 }}>
+              {(() => {
+                const { elements, mediaLinks } = parseContent(rant.quoteRant.content, navigate);
+                return (
+                  <>
+                    <div>{elements}</div>
+                    {mediaLinks.map((link, idx) => (
+                      <div key={idx} className="rant-media embed sm" style={{ marginTop: '6px', borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--border2)', maxHeight: '200px', background: '#000', display: 'flex', justifyContent: 'center' }}>
+                        {link.type === 'video' ? (
+                          <video src={link.url} controls style={{ maxWidth: '100%', maxHeight: '200px' }} />
+                        ) : (
+                          <img src={link.url} alt="Embedded" style={{ maxWidth: '100%', maxHeight: '200px', objectFit: 'contain' }} />
+                        )}
+                      </div>
+                    ))}
+                  </>
+                );
+              })()}
+            </div>
             
             {rant.quoteRant.mediaUrl && (
-              <div className="rant-media" style={{ marginTop: '8px', borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--border2)', maxHeight: '300px', background: '#000', display: 'flex', justifyContent: 'center' }}>
+              <div className="rant-media" style={{ marginTop: '8px', borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--border2)', maxHeight: '300px' }}>
                 {rant.quoteRant.mediaType === 'video' ? (
                   <video 
                     src={rant.quoteRant.mediaUrl} 
@@ -204,7 +270,7 @@ export default function RantDetailPage() {
                   <img 
                     src={rant.quoteRant.mediaUrl} 
                     alt="Media" 
-                    style={{ maxWidth: '100%', height: 'auto', maxHeight: '300px', objectFit: 'contain' }} 
+                    style={{ width: '100%', height: 'auto', maxHeight: '300px', display: 'block' }} 
                   />
                 )}
               </div>
@@ -240,12 +306,12 @@ export default function RantDetailPage() {
       </div>
 
       {/* Reply compose */}
-      <div className="compose" style={{ borderBottom: '1px solid var(--border)' }}>
+      <div className="compose" style={{ borderBottom: '1px solid var(--border)', flexDirection: 'column', gap: 0, padding: 0 }}>
         {replyingTo && (
           <div style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: '6px 12px', fontSize: '13px', color: 'var(--accent)',
-            borderBottom: '1px solid var(--border)', background: 'rgba(99,102,241,0.06)'
+            padding: '8px 1.25rem', fontSize: '13px', color: 'var(--accent)',
+            borderBottom: '1px solid var(--border)', background: 'rgba(123, 104, 238, 0.05)'
           }}>
             <span>Replying to <strong>@{replyingTo.username}</strong></span>
             <button
@@ -259,17 +325,49 @@ export default function RantDetailPage() {
             >✕</button>
           </div>
         )}
-        <div className="compose-input">
+        <div className="compose-input" style={{ padding: '1.25rem' }}>
+          {showSuggestions && (
+            <MentionSuggestions 
+              suggestions={suggestions} 
+              activeIndex={activeIndex} 
+              onSelect={selectUser} 
+            />
+          )}
           <textarea
+            ref={textareaRef}
             placeholder={replyingTo ? `Reply to @${replyingTo.username}...` : 'Write a reply...'}
             value={replyContent}
-            onChange={e => setReplyContent(e.target.value)}
+            onChange={onTextareaChange}
+            onKeyDown={handleKeyDown}
+            onClick={onTextareaClick}
           />
+
+          {mediaPreview && (
+            <div style={{ position: 'relative', marginTop: '10px', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border)', maxWidth: '200px' }}>
+              <img src={mediaPreview} alt="Preview" style={{ width: '100%', display: 'block' }} />
+              <button 
+                onClick={removeFile}
+                style={{ position: 'absolute', top: '5px', right: '5px', background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none', borderRadius: '50%', width: '24px', height: '24px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px' }}
+              >✕</button>
+            </div>
+          )}
+
           <div className="compose-actions">
+            <input 
+              type="file" 
+              ref={fileInputRef} 
+              style={{ display: 'none' }} 
+              accept="image/*,video/*"
+              onChange={handleFileChange} 
+            />
+            <button className="icon-btn" onClick={() => fileInputRef.current?.click()} title="Add media">
+              <Icons.Media />
+            </button>
+
             <button
               className="compose-submit"
               onClick={handleSubmitReply}
-              disabled={submittingReply}
+              disabled={submittingReply || (!replyContent.trim() && !mediaFile)}
             >
               {submittingReply ? '...' : 'Reply'}
             </button>
@@ -308,13 +406,55 @@ export default function RantDetailPage() {
                 Replying to <span style={{ color: 'var(--accent)' }}>@{reply.parentReplyUsername}</span>
               </div>
             )}
-            <div className="rant-text">{parseMentions(reply.content, navigate)}</div>
+            <div className="rant-text">
+              {(() => {
+                const { elements, mediaLinks } = parseContent(reply.content, navigate);
+                return (
+                  <>
+                    <div>{elements}</div>
+                    {mediaLinks.map((link, idx) => (
+                      <div key={idx} className="rant-media embed sm" style={{ marginTop: '8px', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border2)', maxHeight: '300px' }}>
+                        {link.type === 'video' ? (
+                          <video src={link.url} controls style={{ maxWidth: '100%', maxHeight: '300px' }} />
+                        ) : (
+                          <img src={link.url} alt="Embedded" style={{ width: '100%', maxHeight: '300px', display: 'block', cursor: 'pointer' }} onClick={() => window.open(link.url, '_blank')} />
+                        )}
+                      </div>
+                    ))}
+                  </>
+                );
+              })()}
+            </div>
+
+            {reply.mediaUrl && (
+              <div className="rant-media" style={{ marginTop: '8px', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border2)', maxHeight: '300px', marginBottom: '8px' }}>
+                {reply.mediaType === 'video' ? (
+                  <video 
+                    src={reply.mediaUrl} 
+                    controls 
+                    style={{ maxWidth: '100%', height: 'auto', maxHeight: '300px' }} 
+                  />
+                ) : (
+                  <img 
+                    src={reply.mediaUrl} 
+                    alt="Media" 
+                    style={{ width: '100%', height: 'auto', maxHeight: '300px', display: 'block', cursor: 'pointer' }} 
+                    onClick={() => window.open(reply.mediaUrl, '_blank')}
+                  />
+                )}
+              </div>
+            )}
+
             <div className="rant-actions">
               <span className="action reply" onClick={() => handleReplyToReply(reply.id, reply.username)} style={{ cursor: 'pointer' }}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> {reply.replyCount}
               </span>
-              <span className="action like">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg> {reply.likeCount}
+              <span 
+                className="action like" 
+                onClick={() => handleLikeReply(reply.id)} 
+                style={{ color: reply.isLikedByMe ? 'var(--red)' : '', cursor: 'pointer' }}
+              >
+                <svg viewBox="0 0 24 24" fill={reply.isLikedByMe ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.8"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg> {reply.likeCount}
               </span>
             </div>
           </div>

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getSuggestedUsers, toggleFollow, searchUsers, type UserProfileDto } from '../services/userService';
 import { useAuth } from '../context/AuthContext';
+import Icons from './Icons';
 
 export default function RightPanel() {
   const navigate = useNavigate();
@@ -62,7 +63,7 @@ export default function RightPanel() {
   return (
     <div className="right-panel">
       <div className="search-bar" ref={dropdownRef} style={{ position: 'relative' }}>
-        <span style={{ color: 'var(--text3)', fontSize: '15px' }}>🔍</span>
+        <span style={{ color: 'var(--text3)', display: 'flex' }}><Icons.Search /></span>
         <input 
           placeholder="Search users..." 
           value={searchQuery}

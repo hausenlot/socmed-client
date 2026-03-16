@@ -170,8 +170,61 @@
   /* NOTIFICATION BADGE */
   .badge{position:absolute;top:4px;right:4px;background:var(--red);color:#fff;font-size:10px;font-weight:700;padding:1px 5px;border-radius:10px;min-width:16px;text-align:center;line-height:1.4}
 
-  /* SEARCH RESULTS */
-  .search-results{border-bottom:1px solid var(--border);background:var(--bg)}
 
-  /* HOVER VAR */
-  :root{--hover:#ffffff08;--accent-rgb:124,58,237}
+  /* MENTION SUGGESTIONS */
+  .mention-suggestions {
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    right: 0;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    z-index: 1000;
+    max-height: 250px;
+    overflow-y: auto;
+    margin-bottom: 8px;
+  }
+  .mention-item {
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.1s;
+  }
+  .mention-item:last-child {
+    border-bottom: none;
+  }
+  .mention-item:hover, .mention-item.active {
+    background: var(--bg3);
+  }
+  .mention-item .user-info {
+    display: flex;
+    flex-direction: column;
+  }
+  .mention-item .display-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .mention-item .username {
+    font-size: 13px;
+    color: var(--text3);
+  }
+  
+  /* COMPOSE WRAPPER FOR POSITIONING */
+  .compose-input {
+    position: relative;
+  }
+
+  /* ICONS */
+  svg {
+    transition: transform 0.2s ease;
+  }
+  svg:hover {
+    transform: scale(1.1);
+    color: #7c5dfa; /* Your purple color */
+  }
