@@ -7,7 +7,7 @@ export interface NotificationDto {
   isRead: boolean;
   createdAt: string;
   sourceUsername?: string;
-  rantId?: number;
+  rantId?: string;
 }
 
 export function getNotifications() {

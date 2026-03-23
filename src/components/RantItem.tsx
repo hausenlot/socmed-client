@@ -5,16 +5,9 @@ import { toggleLike, toggleRerant, createRant, toggleBookmark } from '../service
 import { useAuth } from '../context/AuthContext';
 import { isLoggedIn } from '../services/authService';
 import { parseContent } from '../utils/contentParser';
+import { getInitials, avatarGradient } from '../utils/avatarUtils';
 
-function getInitials(name: string | undefined): string {
-  if (!name) return '??';
-  return name
-    .split(' ')
-    .map(w => w[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2);
-}
+
 
 function timeAgo(dateStr: string): string {
   const seconds = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
@@ -35,20 +28,7 @@ function formatCount(n: number): string {
 
 
 // Deterministic color from username
-function avatarGradient(username: string | undefined): string {
-  const gradients = [
-    'linear-gradient(135deg,#7b68ee,#4fd1c5)',
-    'linear-gradient(135deg,#f59e0b,#ef4444)',
-    'linear-gradient(135deg,#22c55e,#0ea5e9)',
-    'linear-gradient(135deg,#ec4899,#8b5cf6)',
-    'linear-gradient(135deg,#06b6d4,#3b82f6)',
-    'linear-gradient(135deg,#f97316,#facc15)',
-  ];
-  const key = username || 'unknown';
-  let hash = 0;
-  for (let i = 0; i < key.length; i++) hash = key.charCodeAt(i) + ((hash << 5) - hash);
-  return gradients[Math.abs(hash) % gradients.length];
-}
+
 
 export default function RantItem({ rant, onUpdate }: { rant: RantDto; onUpdate?: () => void }) {
   const navigate = useNavigate();
@@ -133,10 +113,17 @@ export default function RantItem({ rant, onUpdate }: { rant: RantDto; onUpdate?:
       <div style={{ display: 'flex', gap: '12px' }}>
         <div 
           className="avatar sm" 
-          style={{ background: avatarGradient(username), flexShrink: 0, marginTop: '2px', cursor: 'pointer' }}
+          style={{ 
+            background: rant.profileImageUrl ? `url(${rant.profileImageUrl})` : avatarGradient(username),
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            flexShrink: 0, 
+            marginTop: '2px', 
+            cursor: 'pointer' 
+          }}
           onClick={(e) => { e.stopPropagation(); navigate(`/profile/${username}`); }}
         >
-          {getInitials(displayName)}
+          {!rant.profileImageUrl && getInitials(displayName)}
         </div>
         <div className="rant-body">
           <div className="rant-header">
@@ -203,10 +190,18 @@ export default function RantItem({ rant, onUpdate }: { rant: RantDto; onUpdate?:
             <div className="rant-header" style={{ marginBottom: '6px' }}>
               <div 
                 className="avatar sm" 
-                style={{ background: avatarGradient(rant.quoteRant.username), width: '20px', height: '20px', fontSize: '10px', cursor: 'pointer' }}
+                style={{ 
+                  background: rant.quoteRant.profileImageUrl ? `url(${rant.quoteRant.profileImageUrl})` : avatarGradient(rant.quoteRant.username), 
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                  width: '20px', 
+                  height: '20px', 
+                  fontSize: '10px', 
+                  cursor: 'pointer' 
+                }}
                 onClick={(e) => { e.stopPropagation(); navigate(`/profile/${rant.quoteRant!.username}`); }}
               >
-                {getInitials(rant.quoteRant.displayName || rant.quoteRant.username)}
+                {!rant.quoteRant.profileImageUrl && getInitials(rant.quoteRant.displayName || rant.quoteRant.username)}
               </div>
               <span 
                 className="rant-author" 
@@ -336,8 +331,18 @@ export default function RantItem({ rant, onUpdate }: { rant: RantDto; onUpdate?:
             {/* Embedded Original Rant Card */}
             <div className="quote-rant-card" style={{ border: '1px solid var(--border2)', borderRadius: '12px', padding: '12px', opacity: 0.8 }}>
               <div className="rant-header" style={{ marginBottom: '4px' }}>
-                <div className="avatar sm" style={{ background: avatarGradient(username), width: '20px', height: '20px', fontSize: '10px' }}>
-                  {getInitials(displayName)}
+                <div 
+                  className="avatar sm" 
+                  style={{ 
+                    background: rant.profileImageUrl ? `url(${rant.profileImageUrl})` : avatarGradient(username), 
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    width: '20px', 
+                    height: '20px', 
+                    fontSize: '10px' 
+                  }}
+                >
+                  {!rant.profileImageUrl && getInitials(displayName)}
                 </div>
                 <span className="rant-author" style={{ fontSize: '14px' }}>{displayName}</span>
                 <span className="rant-handle" style={{ fontSize: '14px' }}>@{username}</span>

@@ -1,12 +1,13 @@
-import { get, post, put } from './api';
+import { get, post, put, del } from './api';
 import type { RantDto, ReplyDto } from './rantService';
 
 export interface UserProfileDto {
-  id: number;
+  id: string;
   username: string;
   displayName: string;
   bio?: string;
   profileImageUrl?: string;
+  bannerImageUrl?: string;
   followerCount: number;
   followingCount: number;
   rantCount: number;
@@ -39,6 +40,26 @@ export function getUserLikes(username: string, page = 1, pageSize = 20) {
 
 export function updateProfile(data: { displayName?: string; bio?: string }) {
   return put<UserProfileDto>('/users/profile', data);
+}
+
+export function uploadProfileImage(file: File) {
+  const formData = new FormData();
+  formData.append('file', file);
+  return post<{ message: string; profileImageUrl: string }>('/users/profile/image', formData);
+}
+
+export function deleteProfileImage() {
+  return del<{ message: string }>('/users/profile/image');
+}
+
+export function uploadBannerImage(file: File) {
+  const formData = new FormData();
+  formData.append('file', file);
+  return post<{ message: string; bannerImageUrl: string }>('/users/profile/banner', formData);
+}
+
+export function deleteBannerImage() {
+  return del<{ message: string }>('/users/profile/banner');
 }
 
 export function toggleFollow(username: string) {

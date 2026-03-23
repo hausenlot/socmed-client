@@ -12,6 +12,7 @@ export default function ExplorePage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<UserProfileDto[]>([]);
   const [searching, setSearching] = useState(false);
+  const [isSearchExpanded, setIsSearchExpanded] = useState(false);
 
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
@@ -93,14 +94,36 @@ export default function ExplorePage() {
 
   return (
     <>
-      <div className="explore-search">
-        <div className="explore-search-bar">
-          <Icons.Search />
-          <input
-            placeholder="Search users"
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-          />
+      <div className="page-header">
+        <div className="search-container">
+          {!isSearchExpanded && <div className="header-title">Explore</div>}
+          <div className={`search-input-wrapper ${isSearchExpanded ? 'active' : ''}`}>
+            <Icons.Search />
+            <input
+              placeholder="Search users"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              autoFocus={isSearchExpanded}
+              onBlur={() => !searchQuery && setIsSearchExpanded(false)}
+            />
+          </div>
+          {!isSearchExpanded && (
+            <button 
+              className="icon-btn" 
+              onClick={() => setIsSearchExpanded(true)}
+              style={{ marginLeft: 'auto' }}
+            >
+              <Icons.Search />
+            </button>
+          )}
+          {isSearchExpanded && (
+             <button 
+              className="icon-btn" 
+              onClick={() => { setIsSearchExpanded(false); setSearchQuery(''); }}
+            >
+              ✕
+            </button>
+          )}
         </div>
       </div>
 
@@ -130,9 +153,6 @@ export default function ExplorePage() {
         </div>
       )}
 
-      <div style={{ padding: '1rem 1.25rem', fontFamily: "'Syne', sans-serif", fontSize: '15px', fontWeight: 700, borderBottom: '1px solid var(--border)' }}>
-        Explore
-      </div>
 
       {loading && <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text3)' }}>Loading...</div>}
       {!loading && rants.length === 0 && (

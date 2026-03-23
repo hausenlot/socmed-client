@@ -2,6 +2,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useNotifications } from '../context/NotificationContext';
 import Icons from './Icons';
+import { getInitials, avatarGradient } from '../utils/avatarUtils';
 
 export default function Sidebar() {
   const location = useLocation();
@@ -9,9 +10,7 @@ export default function Sidebar() {
   const { user, logout, isLoggedIn } = useAuth();
   const { unreadCount } = useNotifications();
 
-  const initials = user
-    ? user.displayName.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
-    : '??';
+
 
   const navItems = [
     { name: 'Home', path: '/', icon: <Icons.Home /> },
@@ -34,26 +33,38 @@ export default function Sidebar() {
     <div className="sidebar">
       <div className="logo">◈ rant</div>
 
-      {navItems.map((item) => (
-        <Link
-          key={item.name}
-          to={item.path}
-          className={`nav-item ${location.pathname === item.path ? 'active' : ''}`}
-          style={{ position: 'relative' }}
-        >
-          <span className="nav-icon">{item.icon}</span> {item.name}
-          {'badge' in item && (item as { badge?: number }).badge! > 0 && (
-            <span className="badge">{(item as { badge?: number }).badge}</span>
-          )}
-        </Link>
-      ))}
+      <div className="nav-links">
+        {navItems.map((item) => (
+          <Link
+            key={item.name}
+            to={item.path}
+            className={`nav-item ${location.pathname === item.path ? 'active' : ''}`}
+            style={{ position: 'relative' }}
+          >
+            <span className="nav-icon">{item.icon}</span> 
+            <span className="nav-label">{item.name}</span>
+            {'badge' in item && (item as { badge?: number }).badge! > 0 && (
+              <span className="badge">{(item as { badge?: number }).badge}</span>
+            )}
+          </Link>
+        ))}
+      </div>
 
       {isLoggedIn ? (
-        <>
+        <div className="sidebar-footer">
           <button className="rant-btn" onClick={handleNewRant}>+ New Rant</button>
-          <div style={{ display: 'flex', alignItems: 'center', marginTop: '0.5rem', gap: '4px' }}>
+          <div className="user-section" style={{ display: 'flex', alignItems: 'center', marginTop: '0.5rem', gap: '4px' }}>
             <div className="user-chip" onClick={() => navigate(`/profile/${user?.username}`)} title="Go to profile" style={{ marginTop: 0, flex: 1 }}>
-              <div className="avatar">{initials}</div>
+              <div 
+                className="avatar" 
+                style={{ 
+                  background: user?.profileImageUrl ? `url(${user.profileImageUrl})` : avatarGradient(user?.username),
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                }}
+              >
+                {!user?.profileImageUrl && getInitials(user?.displayName)}
+              </div>
               <div className="user-info">
                 <div className="user-name">{user?.displayName ?? 'Guest'}</div>
                 <div className="user-handle">@{user?.username ?? '—'}</div>
@@ -62,6 +73,7 @@ export default function Sidebar() {
             <button 
               onClick={logout} 
               title="Log out"
+              className="logout-btn"
               style={{ background: 'transparent', border: 'none', color: 'var(--text3)', cursor: 'pointer', padding: '10px', borderRadius: '50%', display: 'flex' }}
               onMouseEnter={e => { e.currentTarget.style.color = 'var(--red)'; e.currentTarget.style.background = 'var(--bg3)' }}
               onMouseLeave={e => { e.currentTarget.style.color = 'var(--text3)'; e.currentTarget.style.background = 'transparent' }}
@@ -69,9 +81,11 @@ export default function Sidebar() {
               <Icons.Logout />
             </button>
           </div>
-        </>
+        </div>
       ) : (
-        <button className="rant-btn" onClick={() => navigate('/login')}>Log in / Sign up</button>
+        <div className="sidebar-footer">
+          <button className="rant-btn" onClick={() => navigate('/login')}>Log in / Sign up</button>
+        </div>
       )}
     </div>
   );

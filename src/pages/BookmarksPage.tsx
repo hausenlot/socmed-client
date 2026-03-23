@@ -26,8 +26,8 @@ export default function BookmarksPage() {
 
   return (
     <>
-      <div className="tab-header">
-        <div className="tab active">Bookmarks</div>
+      <div className="page-header">
+        <div className="header-title">Bookmarks</div>
       </div>
 
       {loading && <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text3)' }}>Loading...</div>}

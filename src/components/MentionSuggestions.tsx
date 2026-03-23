@@ -43,9 +43,13 @@ export default function MentionSuggestions({ suggestions, activeIndex, onSelect 
         >
           <div 
             className="avatar sm" 
-            style={{ background: avatarGradient(user.username) }}
+            style={{ 
+              background: user.profileImageUrl ? `url(${user.profileImageUrl})` : avatarGradient(user.username),
+              backgroundSize: 'cover',
+              backgroundPosition: 'center'
+            }}
           >
-            {getInitials(user)}
+            {!user.profileImageUrl && getInitials(user)}
           </div>
           <div className="user-info">
             <span className="display-name">{user.displayName || user.username}</span>

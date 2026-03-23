@@ -65,18 +65,18 @@ export default function NotificationsPage() {
 
   return (
     <>
-      <div className="tab-header" style={{ justifyContent: 'space-between' }}>
-        <div className="tab active">Notifications</div>
+      <div className="page-header">
+        <div className="header-title">Notifications</div>
         {unreadCount > 0 && (
           <button
-            className="compose-submit"
-            style={{ margin: '0 1rem', fontSize: '13px', padding: '6px 14px' }}
+            className="mark-read-btn"
             onClick={handleMarkAllRead}
           >
             Mark all read
           </button>
         )}
       </div>
+
 
       {loading && <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text3)' }}>Loading...</div>}
 

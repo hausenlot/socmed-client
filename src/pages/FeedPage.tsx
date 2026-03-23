@@ -111,6 +111,10 @@ export default function FeedPage() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      if (file.size > 100 * 1024 * 1024) {
+        alert('File is too large. Maximum size is 100MB.');
+        return;
+      }
       setMediaFile(file);
       const url = URL.createObjectURL(file);
       setMediaPreview(url);
@@ -124,8 +128,8 @@ export default function FeedPage() {
 
   return (
     <>
-      <div className="tab-header">
-        <div className="tab active">For you</div>
+      <div className="page-header">
+        <div className="header-title">Home</div>
       </div>
 
       {/* Only show compose box when logged in */}
@@ -147,6 +151,7 @@ export default function FeedPage() {
               onChange={onTextareaChange}
               onKeyDown={handleKeyDown}
               onClick={onTextareaClick}
+              maxLength={1000}
             />
             {mediaPreview && (
               <div className="media-preview" style={{ position: 'relative', marginTop: '10px' }}>
@@ -169,6 +174,9 @@ export default function FeedPage() {
                 <Icons.Media />
               </label>
               <button className="compose-submit" onClick={handlePost} disabled={posting || (!content.trim() && !mediaFile)}>
+                {content.length === 1000 && (
+                  <span className="limit-reached">Limit reached</span>
+                )}
                 {posting ? '...' : 'Rant'}
               </button>
             </div>

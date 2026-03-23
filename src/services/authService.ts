@@ -1,9 +1,10 @@
 import { post } from './api';
 
 export interface AuthUser {
-  id: number;
+  id: string;
   username: string;
   displayName: string;
+  profileImageUrl?: string;
 }
 
 interface LoginResponse {
@@ -11,7 +12,8 @@ interface LoginResponse {
   user?: AuthUser;
   username?: string;
   displayName?: string;
-  id?: number;
+  id?: string;
+  profileImageUrl?: string;
 }
 
 // Try to extract user info from the JWT payload if the response doesn't include it
@@ -21,7 +23,7 @@ function decodeTokenPayload(token: string): Partial<AuthUser> {
     const json = atob(base64);
     const payload = JSON.parse(json);
     return {
-      id: payload.nameid ? Number(payload.nameid) : payload.sub ? Number(payload.sub) : 0,
+      id: payload.nameid || payload.sub || '',
       username: payload.unique_name || payload.name || payload.preferred_username || '',
       displayName: payload.given_name || payload.unique_name || payload.name || '',
     };
@@ -37,13 +39,14 @@ function storeAuth(res: LoginResponse): LoginResponse {
   let user: AuthUser;
   if (res.user && res.user.username) {
     user = res.user;
+    if (res.profileImageUrl) user.profileImageUrl = res.profileImageUrl;
   } else if (res.username) {
-    user = { id: res.id ?? 0, username: res.username, displayName: res.displayName ?? res.username };
+    user = { id: res.id ?? '', username: res.username, displayName: res.displayName ?? res.username, profileImageUrl: res.profileImageUrl };
   } else {
     // Fallback: decode the JWT
     const decoded = decodeTokenPayload(res.token);
     user = {
-      id: decoded.id ?? 0,
+      id: decoded.id ?? '',
       username: decoded.username ?? '',
       displayName: decoded.displayName ?? decoded.username ?? '',
     };

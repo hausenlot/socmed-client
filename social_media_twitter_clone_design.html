@@ -1,0 +1,575 @@
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;700&family=DM+Sans:wght@300;400;500&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#0a0a0c;--bg2:#111116;--bg3:#18181f;--bg4:#1f1f28;
+    --border:#ffffff12;--border2:#ffffff20;
+    --text:#f0f0f5;--text2:#8888a0;--text3:#55556a;
+    --accent:#7b68ee;--accent2:#9b8fff;--accent-dim:#7b68ee22;
+    --red:#ff4d6d;--green:#22c55e;--amber:#f59e0b;
+  }
+  body{background:var(--bg);font-family:'DM Sans',sans-serif;color:var(--text);min-height:100vh;overflow-x:hidden}
+  .app{display:grid;grid-template-columns:240px 1fr 300px;min-height:100vh;max-width:1200px;margin:0 auto}
+
+  /* SIDEBAR */
+  .sidebar{border-right:1px solid var(--border);padding:1.5rem 1rem;display:flex;flex-direction:column;gap:6px;position:sticky;top:0;height:100vh}
+  .logo{font-family:'Syne',sans-serif;font-size:22px;font-weight:700;color:var(--accent2);padding:0.5rem 0.75rem;margin-bottom:0.5rem;letter-spacing:-0.5px}
+  .nav-item{display:flex;align-items:center;gap:12px;padding:0.6rem 0.75rem;border-radius:10px;cursor:pointer;font-size:15px;color:var(--text2);transition:all 0.15s;font-weight:400}
+  .nav-item:hover,.nav-item.active{background:var(--bg3);color:var(--text)}
+  .nav-item.active{color:var(--accent2);font-weight:500}
+  .nav-icon{width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+  .rant-btn{background:var(--accent);color:#fff;border:none;border-radius:12px;padding:0.75rem 1rem;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:500;cursor:pointer;margin-top:auto;transition:opacity 0.15s}
+  .rant-btn:hover{opacity:0.85}
+  .user-chip{display:flex;align-items:center;gap:10px;padding:0.6rem 0.75rem;border-radius:10px;margin-top:0.5rem;cursor:pointer}
+  .user-chip:hover{background:var(--bg3)}
+  .avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:500;color:#fff;flex-shrink:0}
+  .avatar.sm{width:28px;height:28px;font-size:11px}
+  .avatar.lg{width:72px;height:72px;font-size:22px;border:3px solid var(--bg)}
+  .user-info{flex:1;min-width:0}
+  .user-name{font-size:13px;font-weight:500;color:var(--text)}
+  .user-handle{font-size:12px;color:var(--text3)}
+
+  /* MAIN */
+  .main{border-right:1px solid var(--border);display:flex;flex-direction:column}
+  .tab-header{border-bottom:1px solid var(--border);display:flex;gap:0;position:sticky;top:0;background:var(--bg)cc;backdrop-filter:blur(12px);z-index:10}
+  .tab{flex:1;padding:1rem;text-align:center;font-size:14px;font-weight:400;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;transition:all 0.15s}
+  .tab.active{color:var(--text);border-bottom:2px solid var(--accent)}
+  .tab:hover{background:var(--bg2)}
+
+  /* COMPOSE */
+  .compose{padding:1rem 1.25rem;border-bottom:1px solid var(--border);display:flex;gap:12px}
+  .compose-input{flex:1}
+  .compose-input textarea{width:100%;background:transparent;border:none;outline:none;font-family:'DM Sans',sans-serif;font-size:16px;color:var(--text);resize:none;line-height:1.5;min-height:60px}
+  .compose-input textarea::placeholder{color:var(--text3)}
+  .compose-actions{display:flex;align-items:center;gap:8px;padding-top:10px;border-top:1px solid var(--border);margin-top:8px}
+  .icon-btn{background:none;border:none;color:var(--accent2);cursor:pointer;padding:5px;border-radius:6px;font-size:16px;transition:background 0.15s}
+  .icon-btn:hover{background:var(--accent-dim)}
+  .compose-submit{margin-left:auto;background:var(--accent);color:#fff;border:none;border-radius:20px;padding:0.45rem 1.1rem;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer}
+
+  /* POSTS */
+  .rant{padding:1rem 1.25rem;border-bottom:1px solid var(--border);display:flex;gap:12px;cursor:pointer;transition:background 0.12s}
+  .rant:hover{background:var(--bg2)}
+  .rant-body{flex:1;min-width:0}
+  .rant-header{display:flex;align-items:center;gap:6px;margin-bottom:4px;flex-wrap:wrap}
+  .rant-author{font-size:14px;font-weight:500;color:var(--text)}
+  .rant-handle{font-size:13px;color:var(--text3)}
+  .rant-time{font-size:13px;color:var(--text3)}
+  .rant-dot{color:var(--text3);font-size:10px}
+  .rant-text{font-size:14px;line-height:1.6;color:var(--text);margin-bottom:10px}
+  .rant-text .mention{color:var(--accent2)}
+  .rant-text .hashtag{color:var(--accent2)}
+  .rant-media{border-radius:12px;overflow:hidden;margin-bottom:10px;border:1px solid var(--border)}
+  .media-placeholder{background:var(--bg4);height:200px;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:13px}
+  .rant-actions{display:flex;gap:20px}
+  .action{display:flex;align-items:center;gap:5px;color:var(--text3);font-size:13px;cursor:pointer;transition:color 0.15s}
+  .action:hover.reply{color:#1d9bf0}
+  .action:hover.re-rant{color:var(--green)}
+  .action:hover.like{color:var(--red)}
+  .action:hover.views{color:var(--accent2)}
+  .action svg{width:16px;height:16px}
+  .verified{color:var(--accent2);font-size:14px}
+
+  /* RIGHT PANEL */
+  .right-panel{padding:1.25rem 1rem;display:flex;flex-direction:column;gap:1.25rem}
+  .search-bar{background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:0.6rem 1rem;display:flex;align-items:center;gap:8px}
+  .search-bar input{background:none;border:none;outline:none;font-family:'DM Sans',sans-serif;font-size:14px;color:var(--text);flex:1}
+  .search-bar input::placeholder{color:var(--text3)}
+  .panel-card{background:var(--bg3);border:1px solid var(--border);border-radius:16px;overflow:hidden}
+  .panel-title{padding:1rem;font-family:'Syne',sans-serif;font-size:15px;font-weight:700;color:var(--text)}
+  .trend-item{padding:0.75rem 1rem;border-top:1px solid var(--border);cursor:pointer;transition:background 0.12s}
+  .trend-item:hover{background:var(--bg4)}
+  .trend-cat{font-size:11px;color:var(--text3);margin-bottom:2px}
+  .trend-name{font-size:13px;font-weight:500;color:var(--text);margin-bottom:2px}
+  .trend-count{font-size:12px;color:var(--text3)}
+  .suggest-item{padding:0.75rem 1rem;border-top:1px solid var(--border);display:flex;align-items:center;gap:10px;cursor:pointer;transition:background 0.12s}
+  .suggest-item:hover{background:var(--bg4)}
+  .follow-btn{margin-left:auto;background:var(--text);color:var(--bg);border:none;border-radius:20px;padding:0.35rem 0.9rem;font-size:12px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;flex-shrink:0}
+  .follow-btn:hover{opacity:0.85}
+
+  /* PAGE VIEWS */
+  .page{display:none}
+  .page.active{display:block}
+
+  /* PROFILE */
+  .profile-banner{background:linear-gradient(135deg,#1a1a2e,#16213e,#0f3460);height:140px;position:relative}
+  .profile-avatar-wrap{position:absolute;bottom:-36px;left:1.25rem}
+  .profile-info{padding:3rem 1.25rem 1rem;border-bottom:1px solid var(--border)}
+  .profile-name{font-family:'Syne',sans-serif;font-size:20px;font-weight:700;display:flex;align-items:center;gap:6px}
+  .profile-handle{font-size:14px;color:var(--text3);margin:2px 0 10px}
+  .profile-bio{font-size:14px;line-height:1.6;color:var(--text2);margin-bottom:10px}
+  .profile-meta{display:flex;gap:16px;font-size:13px;color:var(--text3);flex-wrap:wrap;margin-bottom:12px}
+  .profile-meta span{display:flex;align-items:center;gap:4px}
+  .profile-stats{display:flex;gap:20px;font-size:14px}
+  .stat-num{font-weight:600;color:var(--text)}
+  .stat-label{color:var(--text3)}
+  .edit-profile-btn{float:right;background:none;border:1px solid var(--border2);color:var(--text);border-radius:20px;padding:0.4rem 1rem;font-size:13px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:-2.5rem}
+  .edit-profile-btn:hover{background:var(--bg3)}
+
+  /* EXPLORE */
+  .explore-search{padding:1rem 1.25rem;border-bottom:1px solid var(--border)}
+  .explore-search-bar{background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:0.75rem 1.25rem;display:flex;align-items:center;gap:10px}
+  .explore-search-bar input{background:none;border:none;outline:none;font-family:'DM Sans',sans-serif;font-size:15px;color:var(--text);flex:1}
+  .explore-search-bar input::placeholder{color:var(--text3)}
+  .category-pills{padding:0.75rem 1.25rem;display:flex;gap:8px;flex-wrap:wrap;border-bottom:1px solid var(--border)}
+  .pill{padding:0.35rem 0.9rem;border-radius:20px;font-size:13px;cursor:pointer;border:1px solid var(--border2);color:var(--text2);transition:all 0.15s}
+  .pill:hover,.pill.active{background:var(--accent);border-color:var(--accent);color:#fff}
+  .trending-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border)}
+  .trending-card{background:var(--bg);padding:1rem 1.25rem;cursor:pointer;transition:background 0.12s}
+  .trending-card:hover{background:var(--bg2)}
+  .trending-rank{font-size:11px;color:var(--text3);margin-bottom:4px}
+  .trending-topic{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;color:var(--text);margin-bottom:4px}
+  .trending-rants{font-size:12px;color:var(--text3)}
+
+  /* POST DETAIL */
+  .rant-detail{padding:1.25rem;border-bottom:1px solid var(--border)}
+  .rant-detail .rant-text{font-size:20px;line-height:1.6;margin:12px 0}
+  .rant-detail-meta{font-size:13px;color:var(--text3);padding:10px 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border);margin-bottom:12px}
+  .rant-detail-stats{display:flex;gap:20px;padding:12px 0;border-bottom:1px solid var(--border);font-size:14px}
+  .rant-detail-stats .stat-item{color:var(--text2)}
+  .rant-detail-stats .stat-item strong{color:var(--text);font-weight:500}
+  .back-btn{background:none;border:none;color:var(--text2);cursor:pointer;font-size:13px;padding:0;display:flex;align-items:center;gap:6px;font-family:'DM Sans',sans-serif;margin-bottom:12px}
+  .back-btn:hover{color:var(--text)}
+  .reply-item{padding:1rem 1.25rem;border-bottom:1px solid var(--border);display:flex;gap:12px;cursor:pointer}
+  .reply-item:hover{background:var(--bg2)}
+  .thread-line{width:2px;background:var(--border2);margin:6px auto 0;flex:1;min-height:20px}
+  .thread-col{display:flex;flex-direction:column;align-items:center;width:36px;flex-shrink:0}
+</style>
+
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="logo">&#9670; rant</div>
+    <div class="nav-item active" onclick="showPage('feed')">
+      <span class="nav-icon">&#8962;</span> Home
+    </div>
+    <div class="nav-item" onclick="showPage('explore')">
+      <span class="nav-icon">&#9776;</span> Explore
+    </div>
+    <div class="nav-item">
+      <span class="nav-icon">&#9993;</span> Messages
+    </div>
+    <div class="nav-item">
+      <span class="nav-icon">&#9739;</span> Notifications
+    </div>
+    <div class="nav-item" onclick="showPage('profile')">
+      <span class="nav-icon">&#9786;</span> Profile
+    </div>
+    <div class="nav-item">
+      <span class="nav-icon">&#9881;</span> Settings
+    </div>
+    <button class="rant-btn">+ New Rant</button>
+    <div class="user-chip">
+      <div class="avatar">JD</div>
+      <div class="user-info">
+        <div class="user-name">Jamie D.</div>
+        <div class="user-handle">@jamied</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div class="main">
+
+    <!-- FEED PAGE -->
+    <div id="page-feed" class="page active">
+      <div class="tab-header">
+        <div class="tab active">For you</div>
+        <div class="tab">Following</div>
+        <div class="tab">Top</div>
+      </div>
+      <div class="compose">
+        <div class="avatar">JD</div>
+        <div class="compose-input">
+          <textarea placeholder="Start a rant..."></textarea>
+          <div class="compose-actions">
+            <button class="icon-btn">&#128444;</button>
+            <button class="icon-btn">&#127775;</button>
+            <button class="icon-btn">&#128515;</button>
+            <button class="icon-btn">&#128197;</button>
+            <button class="compose-submit">Rant</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Rant 1 -->
+      <div class="rant" onclick="showPage('detail')">
+        <div class="avatar sm" style="background:linear-gradient(135deg,#7b68ee,#4fd1c5)">AK</div>
+        <div class="rant-body">
+          <div class="rant-header">
+            <span class="rant-author">Aria Kessler</span>
+            <span class="verified">&#10003;</span>
+            <span class="rant-handle">@ariakessler</span>
+            <span class="rant-dot">&#183;</span>
+            <span class="rant-time">2h</span>
+          </div>
+          <div class="rant-text">
+            The gap between "it works on my machine" and "it works in production" is where most engineers spend 60% of their careers. <span class="hashtag">#devlife</span> <span class="hashtag">#engineering</span>
+          </div>
+          <div class="rant-actions">
+            <span class="action reply">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> 142
+            </span>
+            <span class="action re-rant">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg> 2.1k
+            </span>
+            <span class="action like">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg> 18.4k
+            </span>
+            <span class="action views">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> 204k
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Rant 2 with media -->
+      <div class="rant">
+        <div class="avatar sm" style="background:linear-gradient(135deg,#f59e0b,#ef4444)">MR</div>
+        <div class="rant-body">
+          <div class="rant-header">
+            <span class="rant-author">Marcus Reid</span>
+            <span class="rant-handle">@marcusreid</span>
+            <span class="rant-dot">&#183;</span>
+            <span class="rant-time">4h</span>
+          </div>
+          <div class="rant-text">
+            Built a tiny particle system in CSS over the weekend. No JS, no canvas. Just pure math and <span class="mention">@css</span> animations.&#10024;
+          </div>
+          <div class="rant-media">
+            <div class="media-placeholder">
+              <span>&#127916; Preview image</span>
+            </div>
+          </div>
+          <div class="rant-actions">
+            <span class="action reply">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> 89
+            </span>
+            <span class="action re-rant">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg> 734
+            </span>
+            <span class="action like">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg> 5.2k
+            </span>
+            <span class="action views">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> 61k
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Rant 3 -->
+      <div class="rant">
+        <div class="avatar sm" style="background:linear-gradient(135deg,#22c55e,#0ea5e9)">SL</div>
+        <div class="rant-body">
+          <div class="rant-header">
+            <span class="rant-author">Sophia Lin</span>
+            <span class="verified">&#10003;</span>
+            <span class="rant-handle">@sophialin</span>
+            <span class="rant-dot">&#183;</span>
+            <span class="rant-time">6h</span>
+          </div>
+          <div class="rant-text">
+            Reminder that a product that does one thing extremely well will always beat a product that does ten things mediocrely. Focus is a superpower.
+          </div>
+          <div class="rant-actions">
+            <span class="action reply">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> 221
+            </span>
+            <span class="action re-rant">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg> 4.7k
+            </span>
+            <span class="action like">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg> 31.8k
+            </span>
+            <span class="action views">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> 890k
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROFILE PAGE -->
+    <div id="page-profile" class="page">
+      <div class="tab-header" style="padding:0.5rem 1.25rem;justify-content:flex-start;gap:16px;display:flex;align-items:center">
+        <button class="back-btn" onclick="showPage('feed')" style="margin:0">&#8592; Home</button>
+        <span style="font-size:15px;font-weight:500">Jamie Daniels</span>
+      </div>
+      <div class="profile-banner"></div>
+      <div class="profile-info" style="position:relative">
+        <div class="profile-avatar-wrap">
+          <div class="avatar lg">JD</div>
+        </div>
+        <button class="edit-profile-btn">Edit profile</button>
+        <div class="profile-name">Jamie Daniels <span class="verified" style="font-size:16px">&#10003;</span></div>
+        <div class="profile-handle">@jamied</div>
+        <div class="profile-bio">Frontend engineer & part-time design critic. Making pixels behave since 2018. &#127947; runner &#9749; coffee addict</div>
+        <div class="profile-meta">
+          <span>&#128205; San Francisco, CA</span>
+          <span>&#128279; jamied.dev</span>
+          <span>&#128197; Joined March 2021</span>
+        </div>
+        <div class="profile-stats">
+          <span><span class="stat-num">847</span> <span class="stat-label">Following</span></span>
+          <span><span class="stat-num">12.4k</span> <span class="stat-label">Followers</span></span>
+        </div>
+      </div>
+      <div class="tab-header">
+        <div class="tab active">Rants</div>
+        <div class="tab">Replies</div>
+        <div class="tab">Media</div>
+        <div class="tab">Likes</div>
+      </div>
+      <div class="rant">
+        <div class="avatar sm">JD</div>
+        <div class="rant-body">
+          <div class="rant-header">
+            <span class="rant-author">Jamie Daniels</span>
+            <span class="rant-handle">@jamied</span>
+            <span class="rant-dot">&#183;</span>
+            <span class="rant-time">1d</span>
+          </div>
+          <div class="rant-text">Shipped something I'm really proud of today. Three months of work, hundreds of tiny decisions. The diff is enormous but the end result feels like magic. &#129321;</div>
+          <div class="rant-actions">
+            <span class="action reply"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> 38</span>
+            <span class="action re-rant"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg> 91</span>
+            <span class="action like"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg> 607</span>
+            <span class="action views"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> 8.4k</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- POST DETAIL PAGE -->
+    <div id="page-detail" class="page">
+      <div style="padding:0.75rem 1.25rem;border-bottom:1px solid var(--border)">
+        <button class="back-btn" onclick="showPage('feed')">&#8592; Back</button>
+      </div>
+      <div class="rant-detail">
+        <div style="display:flex;gap:12px;align-items:flex-start">
+          <div class="avatar sm" style="background:linear-gradient(135deg,#7b68ee,#4fd1c5)">AK</div>
+          <div>
+            <div style="font-size:15px;font-weight:500;display:flex;align-items:center;gap:5px">
+              Aria Kessler <span class="verified">&#10003;</span>
+            </div>
+            <div style="font-size:13px;color:var(--text3)">@ariakessler</div>
+          </div>
+          <button style="margin-left:auto;background:var(--text);color:var(--bg);border:none;border-radius:20px;padding:0.4rem 1rem;font-size:13px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif">Follow</button>
+        </div>
+        <div class="rant-text">
+          The gap between "it works on my machine" and "it works in production" is where most engineers spend 60% of their careers. <span class="hashtag">#devlife</span> <span class="hashtag">#engineering</span>
+        </div>
+        <div class="rant-detail-meta">3:42 PM · Nov 14, 2025 · <strong style="color:var(--text)">204K</strong> views</div>
+        <div class="rant-detail-stats">
+          <div class="stat-item"><strong>2.1K</strong> Re-rants</div>
+          <div class="stat-item"><strong>318</strong> Quotes</div>
+          <div class="stat-item"><strong>18.4K</strong> Likes</div>
+          <div class="stat-item"><strong>1,204</strong> Bookmarks</div>
+        </div>
+        <div class="rant-actions" style="padding:4px 0">
+          <span class="action reply"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:20px;height:20px"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>
+          <span class="action re-rant"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:20px;height:20px"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></span>
+          <span class="action like" style="color:var(--red)"><svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.8" style="width:20px;height:20px"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></span>
+          <span class="action views"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:20px;height:20px"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span>
+        </div>
+      </div>
+
+      <!-- Replies -->
+      <div class="reply-item">
+        <div class="thread-col">
+          <div class="avatar sm" style="background:linear-gradient(135deg,#f59e0b,#ef4444)">MR</div>
+          <div class="thread-line"></div>
+        </div>
+        <div class="rant-body">
+          <div class="rant-header">
+            <span class="rant-author">Marcus Reid</span>
+            <span class="rant-handle">@marcusreid</span>
+            <span class="rant-dot">&#183;</span>
+            <span class="rant-time">1h</span>
+          </div>
+          <div class="rant-text">Replying to <span class="mention">@ariakessler</span><br>And the other 40% is arguing about semicolons in code reviews &#128514;</div>
+          <div class="rant-actions">
+            <span class="action reply"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> 14</span>
+            <span class="action like"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg> 892</span>
+          </div>
+        </div>
+      </div>
+      <div class="reply-item">
+        <div class="thread-col">
+          <div class="avatar sm" style="background:linear-gradient(135deg,#22c55e,#0ea5e9)">SL</div>
+        </div>
+        <div class="rant-body">
+          <div class="rant-header">
+            <span class="rant-author">Sophia Lin</span>
+            <span class="verified">&#10003;</span>
+            <span class="rant-handle">@sophialin</span>
+            <span class="rant-dot">&#183;</span>
+            <span class="rant-time">45m</span>
+          </div>
+          <div class="rant-text">Replying to <span class="mention">@ariakessler</span><br>This is why observability tooling is worth every penny. You're not debugging code, you're debugging assumptions.</div>
+          <div class="rant-actions">
+            <span class="action reply"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> 32</span>
+            <span class="action like"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg> 1.2k</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- EXPLORE PAGE -->
+    <div id="page-explore" class="page">
+      <div class="explore-search">
+        <div class="explore-search-bar">
+          <span style="color:var(--text3);font-size:16px">&#128269;</span>
+          <input placeholder="Search rant" />
+        </div>
+      </div>
+      <div class="category-pills">
+        <div class="pill active">Trending</div>
+        <div class="pill">Technology</div>
+        <div class="pill">Design</div>
+        <div class="pill">Science</div>
+        <div class="pill">Sports</div>
+        <div class="pill">Art</div>
+      </div>
+      <div style="padding:1rem 1.25rem;font-family:'Syne',sans-serif;font-size:15px;font-weight:700;border-bottom:1px solid var(--border)">Trending now</div>
+      <div class="trending-grid">
+        <div class="trending-card">
+          <div class="trending-rank">#1 · Technology</div>
+          <div class="trending-topic">#OpenSource</div>
+          <div class="trending-rants">142K rants</div>
+        </div>
+        <div class="trending-card">
+          <div class="trending-rank">#2 · Design</div>
+          <div class="trending-topic">#UITrends2025</div>
+          <div class="trending-rants">89K rants</div>
+        </div>
+        <div class="trending-card">
+          <div class="trending-rank">#3 · Science</div>
+          <div class="trending-topic">#SpaceMission</div>
+          <div class="trending-rants">67K rants</div>
+        </div>
+        <div class="trending-card">
+          <div class="trending-rank">#4 · Gaming</div>
+          <div class="trending-topic">#IndieGames</div>
+          <div class="trending-rants">54K rants</div>
+        </div>
+        <div class="trending-card">
+          <div class="trending-rank">#5 · Crypto</div>
+          <div class="trending-topic">#Web3</div>
+          <div class="trending-rants">41K rants</div>
+        </div>
+        <div class="trending-card">
+          <div class="trending-rank">#6 · Art</div>
+          <div class="trending-topic">#GenerativeArt</div>
+          <div class="trending-rants">38K rants</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="right-panel">
+    <div class="search-bar">
+      <span style="color:var(--text3);font-size:15px">&#128269;</span>
+      <input placeholder="Search" />
+    </div>
+
+    <div class="panel-card">
+      <div class="panel-title">Trending for you</div>
+      <div class="trend-item">
+        <div class="trend-cat">Technology · Trending</div>
+        <div class="trend-name">#TypeScript</div>
+        <div class="trend-count">84.2K rants</div>
+      </div>
+      <div class="trend-item">
+        <div class="trend-cat">Design</div>
+        <div class="trend-name">Dark mode everything</div>
+        <div class="trend-count">31.7K rants</div>
+      </div>
+      <div class="trend-item">
+        <div class="trend-cat">Dev · Trending</div>
+        <div class="trend-name">#AITools</div>
+        <div class="trend-count">201K rants</div>
+      </div>
+      <div class="trend-item" style="border-bottom:none">
+        <div class="trend-cat">Science</div>
+        <div class="trend-name">New exoplanet found</div>
+        <div class="trend-count">12.1K rants</div>
+      </div>
+    </div>
+
+    <div class="panel-card">
+      <div class="panel-title">Who to follow</div>
+      <div class="suggest-item">
+        <div class="avatar sm" style="background:linear-gradient(135deg,#f59e0b,#ef4444)">MR</div>
+        <div>
+          <div class="user-name">Marcus Reid</div>
+          <div class="user-handle">@marcusreid</div>
+        </div>
+        <button class="follow-btn">Follow</button>
+      </div>
+      <div class="suggest-item">
+        <div class="avatar sm" style="background:linear-gradient(135deg,#22c55e,#0ea5e9)">SL</div>
+        <div>
+          <div class="user-name">Sophia Lin</div>
+          <div class="user-handle">@sophialin</div>
+        </div>
+        <button class="follow-btn">Follow</button>
+      </div>
+      <div class="suggest-item" style="border-bottom:none">
+        <div class="avatar sm" style="background:linear-gradient(135deg,#7b68ee,#4fd1c5)">AK</div>
+        <div>
+          <div class="user-name">Aria Kessler</div>
+          <div class="user-handle">@ariakessler</div>
+        </div>
+        <button class="follow-btn">Following</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const map = {feed:0,explore:1,profile:4};
+  if (map[name] !== undefined) document.querySelectorAll('.nav-item')[map[name]].classList.add('active');
+}
+
+document.querySelectorAll('.tab').forEach(t => {
+  t.addEventListener('click', function() {
+    this.closest('.tab-header').querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+    this.classList.add('active');
+  });
+});
+
+document.querySelectorAll('.pill').forEach(p => {
+  p.addEventListener('click', function() {
+    document.querySelectorAll('.pill').forEach(x => x.classList.remove('active'));
+    this.classList.add('active');
+  });
+});
+
+document.querySelectorAll('.follow-btn').forEach(btn => {
+  btn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    this.textContent = this.textContent === 'Follow' ? 'Following' : 'Follow';
+    this.style.background = this.textContent === 'Following' ? 'transparent' : 'var(--text)';
+    this.style.color = this.textContent === 'Following' ? 'var(--text)' : 'var(--bg)';
+    this.style.border = this.textContent === 'Following' ? '1px solid var(--border2)' : 'none';
+  });
+});
+
+document.querySelectorAll('.action.like').forEach(btn => {
+  btn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    this.style.color = this.style.color === 'rgb(255, 77, 109)' ? '' : 'var(--red)';
+  });
+});
+</script>
+

@@ -4,19 +4,21 @@ import { useAuth } from '../context/AuthContext';
 import RantItem from '../components/RantItem';
 import {
   getUserProfile, getUserRants, getUserReplies, getUserLikes,
-  toggleFollow, updateProfile, getFollowers, getFollowing, type UserProfileDto
+  toggleFollow, updateProfile, getFollowers, getFollowing,
+  uploadProfileImage, deleteProfileImage, uploadBannerImage, deleteBannerImage,
+  type UserProfileDto
 } from '../services/userService';
 import type { RantDto, ReplyDto } from '../services/rantService';
+import Icons from '../components/Icons';
+import { getInitials, avatarGradient } from '../utils/avatarUtils';
+import { parseContent } from '../utils/contentParser';
 
-function getInitials(name: string): string {
-  return name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
-}
 
 type ProfileTab = 'rants' | 'replies' | 'likes';
 
 export default function ProfilePage() {
   const { username } = useParams<{ username: string }>();
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, logout } = useAuth();
   const navigate = useNavigate();
 
   const profileUsername = username || currentUser?.username || '';
@@ -40,6 +42,10 @@ export default function ProfilePage() {
   const [modalUsers, setModalUsers] = useState<UserProfileDto[]>([]);
   const [modalLoading, setModalLoading] = useState(false);
 
+  // File uploads
+  const [uploadingProfile, setUploadingProfile] = useState(false);
+  const [uploadingBanner, setUploadingBanner] = useState(false);
+
   const isOwnProfile = currentUser?.username === profileUsername;
 
   const fetchProfile = async () => {
@@ -58,6 +64,58 @@ export default function ProfilePage() {
     finally { setLoading(false); }
   };
 
+  const handleProfileImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 100 * 1024 * 1024) {
+      alert('File is too large. Maximum size is 100MB.');
+      return;
+    }
+    setUploadingProfile(true);
+    try {
+      await uploadProfileImage(file);
+      fetchProfile();
+    } catch (err: any) {
+      alert(err.message || 'Failed to upload profile image');
+    } finally {
+      setUploadingProfile(false);
+    }
+  };
+
+  const handleBannerImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 100 * 1024 * 1024) {
+      alert('File is too large. Maximum size is 100MB.');
+      return;
+    }
+    setUploadingBanner(true);
+    try {
+      await uploadBannerImage(file);
+      fetchProfile();
+    } catch (err: any) {
+      alert(err.message || 'Failed to upload banner image');
+    } finally {
+      setUploadingBanner(false);
+    }
+  };
+
+  const handleDeleteProfileImage = async () => {
+    if (!window.confirm('Remove profile picture?')) return;
+    try {
+      await deleteProfileImage();
+      fetchProfile();
+    } catch { /* ignore */ }
+  };
+
+  const handleDeleteBannerImage = async () => {
+    if (!window.confirm('Remove banner image?')) return;
+    try {
+      await deleteBannerImage();
+      fetchProfile();
+    } catch { /* ignore */ }
+  };
+
   useEffect(() => {
     setLoading(true);
     setActiveTab('rants');
@@ -68,10 +126,10 @@ export default function ProfilePage() {
   useEffect(() => {
     if (!profileUsername) return;
     if (activeTab === 'replies' && replies.length === 0) {
-      getUserReplies(profileUsername).then(res => setReplies(Array.isArray(res) ? res : [])).catch(() => {});
+      getUserReplies(profileUsername).then(res => setReplies(Array.isArray(res) ? res : [])).catch(() => { });
     }
     if (activeTab === 'likes' && likedRants.length === 0) {
-      getUserLikes(profileUsername).then(res => setLikedRants(Array.isArray(res) ? res : [])).catch(() => {});
+      getUserLikes(profileUsername).then(res => setLikedRants(Array.isArray(res) ? res : [])).catch(() => { });
     }
   }, [activeTab, profileUsername]);
 
@@ -120,16 +178,63 @@ export default function ProfilePage() {
 
   return (
     <>
-      <div className="tab-header" style={{ padding: '0.5rem 1.25rem', justifyContent: 'flex-start', gap: '16px', display: 'flex', alignItems: 'center' }}>
-        <button className="back-btn" onClick={() => navigate(-1)} style={{ margin: 0 }}>← Back</button>
-        <span style={{ fontSize: '15px', fontWeight: 500 }}>{profile.displayName}</span>
+      <div className="page-header">
+        <div className="header-title" style={{ textAlign: 'center' }}>
+          {profile.displayName}
+        </div>
+        <div className="profile-header-actions">
+          <button
+            className="icon-btn"
+            onClick={logout}
+            title="Log out"
+            style={{ color: 'var(--text3)' }}
+          >
+            <Icons.Logout />
+          </button>
+        </div>
       </div>
 
-      <div className="profile-banner"></div>
+      <div
+        className="profile-banner"
+        style={{
+          backgroundImage: profile.bannerImageUrl ? `url(${profile.bannerImageUrl})` : undefined,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center'
+        }}
+      >
+        {isOwnProfile && (
+          <div className="banner-edit-overlay">
+            <label className="image-upload-label">
+              <input type="file" hidden onChange={handleBannerImageUpload} accept="image/*" />
+              {uploadingBanner ? '...' : <Icons.Media />}
+            </label>
+            {profile.bannerImageUrl && (
+              <button className="image-delete-btn" onClick={handleDeleteBannerImage}>✕</button>
+            )}
+          </div>
+        )}
+      </div>
 
       <div className="profile-info" style={{ position: 'relative' }}>
         <div className="profile-avatar-wrap">
-          <div className="avatar lg">{getInitials(profile.displayName)}</div>
+          <div className="avatar lg" style={{ overflow: 'hidden' }}>
+            {profile.profileImageUrl ? (
+              <img src={profile.profileImageUrl} alt={profile.displayName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            ) : (
+              getInitials(profile.displayName)
+            )}
+            {isOwnProfile && (
+              <div className="avatar-edit-overlay">
+                <label className="image-upload-label">
+                  <input type="file" hidden onChange={handleProfileImageUpload} accept="image/*" />
+                  {uploadingProfile ? '...' : <Icons.Media />}
+                </label>
+                {profile.profileImageUrl && (
+                  <button className="image-delete-btn" onClick={handleDeleteProfileImage}>✕</button>
+                )}
+              </div>
+            )}
+          </div>
         </div>
         {isOwnProfile ? (
           <button className="edit-profile-btn" onClick={() => setEditing(true)}>Edit profile</button>
@@ -150,7 +255,8 @@ export default function ProfilePage() {
         <div className="profile-handle">@{profile.username}</div>
         {profile.bio && <div className="profile-bio">{profile.bio}</div>}
         <div className="profile-meta">
-          <span>📅 Joined {new Date(profile.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
+          <Icons.CalendarIcon />
+          <span>Joined {new Date(profile.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
         </div>
         <div className="profile-stats">
           <span style={{ cursor: 'pointer' }} onClick={() => handleOpenFollowModal('following')}>
@@ -171,14 +277,24 @@ export default function ProfilePage() {
               <button className="modal-close" onClick={() => setEditing(false)}>✕</button>
             </div>
             <div className="modal-body">
-              <label className="form-label">Display Name</label>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <label className="form-label">Display Name</label>
+                {editDisplayName.length === 50 && (
+                  <span className="limit-reached" style={{ fontSize: '12px', marginBottom: '6px' }}>Limit reached</span>
+                )}
+              </div>
               <input
                 className="form-input"
                 value={editDisplayName}
                 onChange={e => setEditDisplayName(e.target.value)}
                 maxLength={50}
               />
-              <label className="form-label" style={{ marginTop: '12px' }}>Bio</label>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px' }}>
+                <label className="form-label" style={{ marginTop: 0 }}>Bio</label>
+                {editBio.length === 160 && (
+                  <span className="limit-reached" style={{ fontSize: '12px', marginBottom: '6px' }}>Limit reached</span>
+                )}
+              </div>
               <textarea
                 className="form-input"
                 value={editBio}
@@ -211,16 +327,25 @@ export default function ProfilePage() {
                 <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text3)' }}>No {modalType} to show.</div>
               ) : (
                 modalUsers.map(u => (
-                  <div 
-                    key={u.id} 
-                    className="suggest-item" 
+                  <div
+                    key={u.username}
+                    className="suggest-item"
                     onClick={() => { setModalType(null); navigate(`/profile/${u.username}`); }}
                     style={{ borderTop: 'none', borderBottom: '1px solid var(--border)' }}
                   >
-                    <div className="avatar sm">{getInitials(u.displayName)}</div>
+                    <div
+                      className="avatar sm"
+                      style={{
+                        background: u.profileImageUrl ? `url(${u.profileImageUrl})` : avatarGradient(u.username),
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center'
+                      }}
+                    >
+                      {!u.profileImageUrl && getInitials(u.displayName)}
+                    </div>
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
-                        <span style={{ fontSize: '14px', fontWeight: 500 }}>{u.displayName}</span>
-                        <span style={{ fontSize: '13px', color: 'var(--text3)' }}>@{u.username}</span>
+                      <span style={{ fontSize: '14px', fontWeight: 500 }}>{u.displayName}</span>
+                      <span style={{ fontSize: '13px', color: 'var(--text3)' }}>@{u.username}</span>
                     </div>
                     {currentUser?.username !== u.username && (
                       <button
@@ -230,7 +355,7 @@ export default function ProfilePage() {
                           if (!currentUser) { navigate('/login'); return; }
                           try {
                             await toggleFollow(u.username);
-                            setModalUsers(prev => prev.map(mu => mu.id === u.id ? { ...mu, isFollowedByMe: !mu.isFollowedByMe } : mu));
+                            setModalUsers(prev => prev.map(mu => mu.username === u.username ? { ...mu, isFollowedByMe: !mu.isFollowedByMe } : mu));
                             fetchProfile();
                           } catch { /* ignore */ }
                         }}
@@ -273,19 +398,51 @@ export default function ProfilePage() {
           {replies.length === 0 && (
             <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text3)' }}>No replies yet.</div>
           )}
-          {replies.map(reply => (
-            <div key={reply.id} className="rant" style={{ cursor: 'default' }}>
-              <div className="rant-body">
-                <div className="rant-header">
-                  <span className="rant-author">{reply.displayName || reply.username}</span>
-                  <span className="rant-handle">@{reply.username}</span>
-                  <span className="rant-dot">·</span>
-                  <span className="rant-time">{new Date(reply.createdAt).toLocaleDateString()}</span>
+          {replies.map(reply => {
+            const { elements, mediaLinks } = parseContent(reply.content, navigate);
+
+            return (
+              <div
+                key={reply.id}
+                className="rant"
+                style={{ cursor: 'pointer' }}
+                onClick={() => navigate(`/rant/${reply.rantId}#reply-${reply.id}`)}
+              >
+                <div className="rant-body">
+                  <div className="rant-header">
+                    <span className="rant-author">{reply.displayName || reply.username}</span>
+                    <span className="rant-handle">@{reply.username}</span>
+                    <span className="rant-dot">·</span>
+                    <span className="rant-time">{new Date(reply.createdAt).toLocaleDateString()}</span>
+                  </div>
+                  <div className="rant-text" style={{ marginBottom: '12px' }}>{elements}</div>
+
+                  {/* Media Rendering */}
+                  {(reply.mediaUrl || mediaLinks.length > 0) && (
+                    <div className="rant-media" style={{ marginTop: '8px', marginBottom: '8px' }}>
+                      {/* Uploaded Media */}
+                      {reply.mediaUrl && (
+                        reply.mediaType === 'video' ? (
+                          <video src={reply.mediaUrl} controls className="media-preview" style={{ maxWidth: '100%', borderRadius: '12px' }} />
+                        ) : (
+                          <img src={reply.mediaUrl} alt="Reply media" className="media-preview" style={{ maxWidth: '100%', borderRadius: '12px' }} />
+                        )
+                      )}
+
+                      {/* Link-embedded Media (like Giphy) */}
+                      {mediaLinks.map((ml, i) => (
+                        ml.type === 'video' ? (
+                          <video key={i} src={ml.url} controls className="media-preview" style={{ maxWidth: '100%', borderRadius: '12px', marginTop: '8px' }} />
+                        ) : (
+                          <img key={i} src={ml.url} alt="Embedded media" className="media-preview" style={{ maxWidth: '100%', borderRadius: '12px', marginTop: '8px' }} />
+                        )
+                      ))}
+                    </div>
+                  )}
                 </div>
-                <div className="rant-text">{reply.content}</div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </>
       )}
 

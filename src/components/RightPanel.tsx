@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { getSuggestedUsers, toggleFollow, searchUsers, type UserProfileDto } from '../services/userService';
 import { useAuth } from '../context/AuthContext';
 import Icons from './Icons';
+import { getInitials, avatarGradient } from '../utils/avatarUtils';
 
 export default function RightPanel() {
   const navigate = useNavigate();
@@ -104,9 +105,16 @@ export default function RightPanel() {
                   }}
                   style={{ borderBottom: '1px solid var(--border)', padding: '12px 16px', cursor: 'pointer' }}
                 >
-                  <div className="avatar sm">
-                    {(user.displayName || user.username).split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)}
-                  </div>
+                    <div 
+                      className="avatar sm"
+                      style={{
+                        background: user.profileImageUrl ? `url(${user.profileImageUrl})` : avatarGradient(user.username),
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center'
+                      }}
+                    >
+                      {!user.profileImageUrl && getInitials(user.displayName || user.username)}
+                    </div>
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
                     <span style={{ fontSize: '15px', fontWeight: 600 }}>{user.displayName || user.username}</span>
                     <span style={{ fontSize: '14px', color: 'var(--text3)' }}>@{user.username}</span>
@@ -134,21 +142,6 @@ function SuggestItem({ user }: { user: UserProfileDto }) {
   const navigate = useNavigate();
   const [followed, setFollowed] = useState(user.isFollowedByMe);
 
-  const initials = (user.displayName || user.username)
-    .split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
-
-  const gradients = [
-    'linear-gradient(135deg,#7b68ee,#4fd1c5)',
-    'linear-gradient(135deg,#f59e0b,#ef4444)',
-    'linear-gradient(135deg,#22c55e,#0ea5e9)',
-    'linear-gradient(135deg,#ec4899,#8b5cf6)',
-    'linear-gradient(135deg,#06b6d4,#3b82f6)',
-    'linear-gradient(135deg,#f97316,#facc15)',
-  ];
-  let hash = 0;
-  for (let i = 0; i < user.username.length; i++) hash = user.username.charCodeAt(i) + ((hash << 5) - hash);
-  const bg = gradients[Math.abs(hash) % gradients.length];
-
   const handleFollow = async (e: React.MouseEvent) => {
     e.stopPropagation();
     try {
@@ -163,7 +156,16 @@ function SuggestItem({ user }: { user: UserProfileDto }) {
       style={{ cursor: 'pointer' }}
       onClick={() => navigate(`/profile/${user.username}`)}
     >
-      <div className="avatar sm" style={{ background: bg }}>{initials}</div>
+      <div 
+        className="avatar sm" 
+        style={{ 
+          background: user.profileImageUrl ? `url(${user.profileImageUrl})` : avatarGradient(user.username),
+          backgroundSize: 'cover',
+          backgroundPosition: 'center'
+        }}
+      >
+        {!user.profileImageUrl && getInitials(user.displayName || user.username)}
+      </div>
       <div>
         <div className="user-name">{user.displayName || user.username}</div>
         <div className="user-handle">@{user.username}</div>

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import {
   getRantById, getReplies, toggleLike, toggleRerant,
   createReply, toggleReplyLike, type RantDto, type ReplyDto
@@ -38,8 +38,9 @@ function formatCount(n: number): string {
 
 export default function RantDetailPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { id } = useParams<{ id: string }>();
-  const rantId = Number(id);
+  const rantId = id || '';
 
   const [rant, setRant] = useState<RantDto | null>(null);
   const [replies, setReplies] = useState<ReplyDto[]>([]);
@@ -50,7 +51,7 @@ export default function RantDetailPage() {
   const [rerantCount, setRerantCount] = useState(0);
   const [replyContent, setReplyContent] = useState('');
   const [submittingReply, setSubmittingReply] = useState(false);
-  const [replyingTo, setReplyingTo] = useState<{ replyId: number; username: string } | null>(null);
+  const [replyingTo, setReplyingTo] = useState<{ replyId: string; username: string } | null>(null);
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -58,6 +59,10 @@ export default function RantDetailPage() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      if (file.size > 100 * 1024 * 1024) {
+        alert('File is too large. Maximum size is 100MB.');
+        return;
+      }
       setMediaFile(file);
       setMediaPreview(URL.createObjectURL(file));
     }
@@ -98,6 +103,23 @@ export default function RantDetailPage() {
   };
 
   useEffect(() => { fetchData(); }, [rantId]);
+  
+  // Handle scrolling to a specific reply from deep link
+  useEffect(() => {
+    if (!loading && replies.length > 0 && location.hash) {
+      const id = location.hash.replace('#reply-', '');
+      const element = document.getElementById(`reply-${id}`);
+      if (element) {
+        setTimeout(() => {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          element.classList.add('highlight-reply');
+          setTimeout(() => {
+            element.classList.remove('highlight-reply');
+          }, 3000); // Highlight for 3 seconds
+        }, 100);
+      }
+    }
+  }, [loading, replies, location.hash]);
 
   const handleLike = async () => {
     try {
@@ -115,7 +137,7 @@ export default function RantDetailPage() {
     } catch { /* ignore */ }
   };
 
-  const handleLikeReply = async (replyId: number) => {
+  const handleLikeReply = async (replyId: string) => {
     try {
       await toggleReplyLike(replyId);
       setReplies(prev => prev.map(r => {
@@ -144,7 +166,7 @@ export default function RantDetailPage() {
     finally { setSubmittingReply(false); }
   };
 
-  const handleReplyToReply = (replyId: number, username: string) => {
+  const handleReplyToReply = (replyId: string, username: string) => {
     setReplyingTo({ replyId, username });
     setReplyContent(`@${username} `);
     // Focus the textarea
@@ -177,10 +199,15 @@ export default function RantDetailPage() {
         <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
           <div 
             className="avatar sm" 
-            style={{ background: avatarGradient(rant.username), cursor: 'pointer' }}
+            style={{ 
+              background: rant.profileImageUrl ? `url(${rant.profileImageUrl})` : avatarGradient(rant.username),
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              cursor: 'pointer' 
+            }}
             onClick={() => navigate(`/profile/${rant.username}`)}
           >
-            {getInitials(rant.displayName)}
+            {!rant.profileImageUrl && getInitials(rant.displayName)}
           </div>
           <div onClick={() => navigate(`/profile/${rant.username}`)} style={{ cursor: 'pointer' }}>
             <div 
@@ -340,6 +367,7 @@ export default function RantDetailPage() {
             onChange={onTextareaChange}
             onKeyDown={handleKeyDown}
             onClick={onTextareaClick}
+            maxLength={1000}
           />
 
           {mediaPreview && (
@@ -369,6 +397,9 @@ export default function RantDetailPage() {
               onClick={handleSubmitReply}
               disabled={submittingReply || (!replyContent.trim() && !mediaFile)}
             >
+              {replyContent.length === 1000 && (
+                <span className="limit-reached">Limit reached</span>
+              )}
               {submittingReply ? '...' : 'Reply'}
             </button>
           </div>
@@ -377,14 +408,19 @@ export default function RantDetailPage() {
 
       {/* Replies */}
       {replies.map((reply, idx) => (
-        <div className="reply-item" key={reply.id}>
+        <div className="reply-item" key={reply.id} id={`reply-${reply.id}`}>
           <div className="thread-col">
             <div 
               className="avatar sm" 
-              style={{ background: avatarGradient(reply.username), cursor: 'pointer' }}
+              style={{ 
+                background: reply.profileImageUrl ? `url(${reply.profileImageUrl})` : avatarGradient(reply.username),
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                cursor: 'pointer' 
+              }}
               onClick={() => navigate(`/profile/${reply.username}`)}
             >
-              {getInitials(reply.displayName)}
+              {!reply.profileImageUrl && getInitials(reply.displayName)}
             </div>
             {idx < replies.length - 1 && <div className="thread-line"></div>}
           </div>
